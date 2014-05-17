@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.dvdfu.puncher.handlers.GameObject;
 import com.dvdfu.puncher.handlers.Input;
@@ -15,13 +16,11 @@ import com.dvdfu.puncher.states.Game;
 
 public class Player extends GameObject {
 	private enum State {
-		IDLE, HELD, SHOT
+		IDLE, HELD, SHOT, HURT, ITEM
 	};
 
 	private State state;
-	private boolean vuln;
 	private int springCount;
-	private float springLength;
 	private Vector2 springMiddle;
 	private float t;
 	private float dy;
@@ -35,9 +34,7 @@ public class Player extends GameObject {
 		xOffset = -width / 2;
 		yOffset = -height / 2;
 		switchState(State.IDLE);
-		vuln = true;
-		springCount = 6;
-		springLength = 48;
+		springCount = 12;
 		setSprite(new TextureRegion(new Texture(Gdx.files.internal("img/blob.png"))));
 		joint = new TextureRegion(new Texture(Gdx.files.internal("img/joint.png")));
 		xSpriteOffset = -16;
@@ -56,8 +53,8 @@ public class Player extends GameObject {
 			break;
 		case SHOT:
 			t = 0;
-			dy = (springMiddle.y - y) * 4;
-			dx = (springMiddle.x - x) * 4;
+			dy = (springMiddle.y - y) * 3;
+			dx = (springMiddle.x - x) * 3;
 			break;
 		}
 		state = s;
@@ -69,7 +66,7 @@ public class Player extends GameObject {
 			y = springMiddle.y + dy * MathUtils.cos(t) / (1 + t);
 			x = springMiddle.x + dx * MathUtils.cos(t) / (1 + t);
 			if (Input.MouseDown() && t > Math.PI / 2) {
-				if (Game.screenInput.y < springMiddle.y) {
+				if (new Rectangle(x - 32, y - 32, 64, 64).contains(Game.screenInput.x, Game.screenInput.y)) {
 					switchState(State.HELD);
 				}
 			}
@@ -93,21 +90,24 @@ public class Player extends GameObject {
 			if (t > MathUtils.PI * 3 / 4) {
 				switchState(State.IDLE);
 			}
-			t += Vars.timescale / 4;
+			t += Vars.timescale / 8;
 			break;
 		}
-		vuln = state == State.HELD || state == State.IDLE;
-		angle = -Math.abs(MathUtils.atan2(y - springMiddle.y, x - springMiddle.x) * MathUtils.radiansToDegrees);
+		angle = MathUtils.atan2(y - springMiddle.y, x - springMiddle.x) * MathUtils.radiansToDegrees + 180;
 		super.update();
+	}
+	
+	public boolean attacking() {
+		return state == State.SHOT;
 	}
 
 	public void render(ShapeRenderer sr) {
-		super.render(sr);
+		// super.render(sr);
 		sr.begin(ShapeType.Filled);
-		if (y < springCount * springLength) {
+		if (y < springMiddle.y) {
 			if (state == State.HELD) {
-				float px = springMiddle.x + (springMiddle.x - x) * 4;
-				float py = springMiddle.y + (springMiddle.y - y) * 4;
+				float px = springMiddle.x + (springMiddle.x - x) * 3;
+				float py = springMiddle.y + (springMiddle.y - y) * 3;
 				int n = 128;
 				for (int i = 0; i < n; i++) {
 					sr.setColor(1, 0, 0, 1);
@@ -124,6 +124,7 @@ public class Player extends GameObject {
 			sb.draw(joint, springMiddle.x + i * (x - springMiddle.x) / springCount - 4, springMiddle.y - i * (springMiddle.y - y) / springCount - 4);
 		}
 		if (sprite.exists()) {
+			// sb.draw(sprite.getFrame(), x + xSpriteOffset, y + ySpriteOffset, -xSpriteOffset, -ySpriteOffset, spriteWidth, spriteHeight, 1, 1, angle, true);
 			sb.draw(sprite.getFrame(), x + xSpriteOffset, y + ySpriteOffset);
 		}
 		sb.end();
