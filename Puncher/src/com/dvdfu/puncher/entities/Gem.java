@@ -8,13 +8,15 @@ import com.dvdfu.puncher.handlers.GameObject;
 import com.dvdfu.puncher.handlers.Vars;
 
 public class Gem extends GameObject {
-	private boolean dead;
+	public boolean dead;
+	public boolean held;
 	private float fallSpeed;
 
 	public Gem(float x) {
 		super(x, Vars.SCREEN_HEIGHT - 8, 16, 16);
 		setSprite(new TextureRegion(new Texture(Gdx.files.internal("img/gem.png"))));
 		dead = false;
+		held = false;
 		fallSpeed = MathUtils.random(0.5f, 2.0f);
 		xOffset = -8;
 		yOffset = -8;
@@ -26,9 +28,5 @@ public class Gem extends GameObject {
 		y -= fallSpeed;
 		dead = y + 8 < 0;
 		super.update();
-	}
-
-	public boolean isDead() {
-		return dead;
 	}
 }

@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.utils.Array;
 import com.dvdfu.puncher.handlers.GameObject;
 import com.dvdfu.puncher.handlers.Input;
 import com.dvdfu.puncher.handlers.Vars;
@@ -19,6 +20,7 @@ public class Player extends GameObject {
 		IDLE, HELD, SHOT, HURT, ITEM
 	};
 
+	private Array<Gem> gems;
 	private State state;
 	private int springCount;
 	private Vector2 springMiddle;
@@ -30,6 +32,7 @@ public class Player extends GameObject {
 
 	public Player() {
 		super(Vars.SCREEN_WIDTH / 2, 80, 24, 24);
+		gems = new Array<Gem>();
 		springMiddle = new Vector2(Vars.SCREEN_WIDTH / 2, Vars.SCREEN_HEIGHT / 4);
 		xOffset = -width / 2;
 		yOffset = -height / 2;
@@ -48,8 +51,15 @@ public class Player extends GameObject {
 			t = 0;
 			dy = y - springMiddle.y;
 			dx = x - springMiddle.x;
+			for (int i = 0; i < gems.size; i++) {
+				Gem g = gems.get(i);
+				g.held = false;
+				gems.removeIndex(i);
+				i--;
+			}
 			break;
 		case HELD:
+			t = 0;
 			break;
 		case SHOT:
 			t = 0;
@@ -83,6 +93,28 @@ public class Player extends GameObject {
 					switchState(State.SHOT);
 				}
 			}
+			if (gems.size > 0) {
+				for (int i = 0; i < gems.size; i++) {
+					int layer = 1;
+					int innerGems = 0;
+					int outerGemLimit = 6;
+					while (true) {
+						if (innerGems + outerGemLimit > i) {
+							break;
+						}
+						innerGems += outerGemLimit;
+						layer++;
+						outerGemLimit += 6;
+					}
+					float radius = layer * 16;
+					float angle = MathUtils.PI2 * (i - innerGems) / (gems.size - innerGems);
+					if (gems.size >= outerGemLimit + innerGems) {
+						angle = MathUtils.PI2 * (i % outerGemLimit) / outerGemLimit;
+					}
+					gems.get(i).setPosition(x + radius * MathUtils.cos(angle + t), y + radius * MathUtils.sin(angle + t));
+				}
+			}
+			t += Vars.timescale / 40;
 			break;
 		case SHOT:
 			y = springMiddle.y + dy * MathUtils.sin(t);
@@ -96,35 +128,42 @@ public class Player extends GameObject {
 		angle = MathUtils.atan2(y - springMiddle.y, x - springMiddle.x) * MathUtils.radiansToDegrees + 180;
 		super.update();
 	}
-	
+
+	public void carry(Gem gem) {
+		if (!gems.contains(gem, false)) {
+			gems.add(gem);
+		}
+	}
+
 	public boolean attacking() {
 		return state == State.SHOT;
 	}
 
-	public void render(ShapeRenderer sr) {
-		// super.render(sr);
-		sr.begin(ShapeType.Filled);
+	public boolean moving() {
+		return state == State.HELD;
+	}
+	
+	public void renderJoint(SpriteBatch sb) {
+		sb.begin();
+
 		if (y < springMiddle.y) {
 			if (state == State.HELD) {
 				float px = springMiddle.x + (springMiddle.x - x) * 3;
 				float py = springMiddle.y + (springMiddle.y - y) * 3;
-				int n = 128;
-				for (int i = 0; i < n; i++) {
-					sr.setColor(1, 0, 0, 1);
-					sr.circle(x + i * (px - x) / n, y + i * (py - y) / n, 16);
+				for (int i = 0; i <= springCount; i++) {
+					sb.draw(joint, x + i * (px - x) / springCount - 4, y + i * (py - y) / springCount - 4);
 				}
 			}
 		}
-		sr.end();
+		sb.end();
 	}
 
 	public void render(SpriteBatch sb) {
 		sb.begin();
-		for (int i = 0; i < springCount; i++) {
-			sb.draw(joint, springMiddle.x + i * (x - springMiddle.x) / springCount - 4, springMiddle.y - i * (springMiddle.y - y) / springCount - 4);
-		}
 		if (sprite.exists()) {
-			// sb.draw(sprite.getFrame(), x + xSpriteOffset, y + ySpriteOffset, -xSpriteOffset, -ySpriteOffset, spriteWidth, spriteHeight, 1, 1, angle, true);
+			// sb.draw(sprite.getFrame(), x + xSpriteOffset, y + ySpriteOffset,
+			// -xSpriteOffset, -ySpriteOffset, spriteWidth, spriteHeight, 1, 1,
+			// angle, true);
 			sb.draw(sprite.getFrame(), x + xSpriteOffset, y + ySpriteOffset);
 		}
 		sb.end();
