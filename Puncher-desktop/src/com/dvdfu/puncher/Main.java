@@ -9,8 +9,9 @@ public class Main {
 	public static void main(String[] args) {
 		LwjglApplicationConfiguration cfg = new LwjglApplicationConfiguration();
 		cfg.title = "Puncher";
-		cfg.width = Vars.SCREEN_WIDTH;
-		cfg.height = Vars.SCREEN_HEIGHT;
+		cfg.width = Vars.WINDOW_WIDTH;
+		cfg.height = Vars.WINDOW_HEIGHT;
+		cfg.resizable = false;
 		new LwjglApplication(new Game(), cfg);
 	}
 }

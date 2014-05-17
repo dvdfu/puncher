@@ -1,10 +1,16 @@
 package com.dvdfu.puncher.entities;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Vector2;
 import com.dvdfu.puncher.handlers.GameObject;
 import com.dvdfu.puncher.handlers.Input;
+import com.dvdfu.puncher.handlers.Vars;
 import com.dvdfu.puncher.states.Game;
 
 public class Player extends GameObject {
@@ -13,31 +19,45 @@ public class Player extends GameObject {
 	};
 
 	private State state;
+	private boolean vuln;
 	private int springCount;
 	private float springLength;
-	private float springMiddle;
+	private Vector2 springMiddle;
 	private float t;
 	private float dy;
+	private float dx;
+	private float angle;
+	private TextureRegion joint;
 
 	public Player() {
-		super(0, 100, 32, 32);
-		xOffset = -16;
+		super(Vars.SCREEN_WIDTH / 2, 80, 24, 24);
+		springMiddle = new Vector2(Vars.SCREEN_WIDTH / 2, Vars.SCREEN_HEIGHT / 4);
+		xOffset = -width / 2;
+		yOffset = -height / 2;
 		switchState(State.IDLE);
-		springCount = 12;
-		springLength = 32;
-		springMiddle = 80;
+		vuln = true;
+		springCount = 6;
+		springLength = 48;
+		setSprite(new TextureRegion(new Texture(Gdx.files.internal("img/blob.png"))));
+		joint = new TextureRegion(new Texture(Gdx.files.internal("img/joint.png")));
+		xSpriteOffset = -16;
+		ySpriteOffset = -16;
 	}
 
 	private void switchState(State s) {
-		t = 0;
+		Vars.timescale = 1;
 		switch (s) {
 		case IDLE:
-			dy = y - springMiddle;
+			t = 0;
+			dy = y - springMiddle.y;
+			dx = x - springMiddle.x;
 			break;
 		case HELD:
 			break;
 		case SHOT:
-			dy = springMiddle - y;
+			t = 0;
+			dy = (springMiddle.y - y) * 4;
+			dx = (springMiddle.x - x) * 4;
 			break;
 		}
 		state = s;
@@ -46,28 +66,21 @@ public class Player extends GameObject {
 	public void update() {
 		switch (state) {
 		case IDLE:
-			t += 0.2;
-			y = springMiddle + dy * MathUtils.cos(t) / (1 + t);
-			if (Input.MouseDown() && t > 5) {
-				if (body.contains(Game.screenInput.x, Game.screenInput.y)) {
+			y = springMiddle.y + dy * MathUtils.cos(t) / (1 + t);
+			x = springMiddle.x + dx * MathUtils.cos(t) / (1 + t);
+			if (Input.MouseDown() && t > Math.PI / 2) {
+				if (Game.screenInput.y < springMiddle.y) {
 					switchState(State.HELD);
 				}
 			}
+			t += Vars.timescale / 4;
 			break;
 		case HELD:
-			float mouseY = Game.screenInput.y;
 			if (Input.MouseDown()) {
-				if (mouseY > 0) {
-					if (mouseY >= springCount * springLength) {
-						y = springCount * springLength - 1;
-					} else {
-						y = mouseY;
-					}
-				} else {
-					y = 0;
-				}
+				x = Game.screenInput.x;
+				y = Game.screenInput.y;
 			} else {
-				if (mouseY > springMiddle) {
+				if (Game.screenInput.y > springMiddle.y) {
 					switchState(State.IDLE);
 				} else {
 					switchState(State.SHOT);
@@ -75,33 +88,44 @@ public class Player extends GameObject {
 			}
 			break;
 		case SHOT:
-			y += dy / 2;
-			if (y + dy / 2 > springMiddle + dy * 3) {
-				y = springMiddle + dy * 3;
+			y = springMiddle.y + dy * MathUtils.sin(t);
+			x = springMiddle.x + dx * MathUtils.sin(t);
+			if (t > MathUtils.PI * 3 / 4) {
 				switchState(State.IDLE);
 			}
+			t += Vars.timescale / 4;
 			break;
 		}
-		x = Game.screenInput.x;
+		vuln = state == State.HELD || state == State.IDLE;
+		angle = -Math.abs(MathUtils.atan2(y - springMiddle.y, x - springMiddle.x) * MathUtils.radiansToDegrees);
 		super.update();
 	}
 
 	public void render(ShapeRenderer sr) {
-		sr.begin(ShapeType.Line);
+		super.render(sr);
+		sr.begin(ShapeType.Filled);
 		if (y < springCount * springLength) {
-			float springHeight = y / springCount;
-			float springWidth = (float) Math.sqrt((double) (springLength * springLength - springHeight * springHeight)) / 2;
-			for (int i = 0; i < springCount; i++) {
-				sr.line(x - springWidth, i * springHeight, x + springWidth, (i + 1) * springHeight);
-			}
-			for (int i = 0; i < springCount; i++) {
-				sr.line(x + springWidth, i * springHeight, x - springWidth, (i + 1) * springHeight);
-			}
 			if (state == State.HELD) {
-				sr.line(x, y, x, springMiddle + (springMiddle - y) * 3 + height);
+				float px = springMiddle.x + (springMiddle.x - x) * 4;
+				float py = springMiddle.y + (springMiddle.y - y) * 4;
+				int n = 128;
+				for (int i = 0; i < n; i++) {
+					sr.setColor(1, 0, 0, 1);
+					sr.circle(x + i * (px - x) / n, y + i * (py - y) / n, 16);
+				}
 			}
 		}
 		sr.end();
-		super.render(sr);
+	}
+
+	public void render(SpriteBatch sb) {
+		sb.begin();
+		for (int i = 0; i < springCount; i++) {
+			sb.draw(joint, springMiddle.x + i * (x - springMiddle.x) / springCount - 4, springMiddle.y - i * (springMiddle.y - y) / springCount - 4);
+		}
+		if (sprite.exists()) {
+			sb.draw(sprite.getFrame(), x + xSpriteOffset, y + ySpriteOffset);
+		}
+		sb.end();
 	}
 }
