@@ -48,7 +48,7 @@ public class Game implements ApplicationListener {
 
 	public void render() {
 		timer++;
-		if (timer == 30) {
+		if (timer == 10) {
 			objects.add(new Gem(MathUtils.random(Vars.SCREEN_WIDTH)));
 			timer = 0;
 		}
@@ -83,23 +83,24 @@ public class Game implements ApplicationListener {
 					}
 				}
 			} else if (o instanceof Gem) {
-				if (o.getY() + 8 < 0) {
-					o.setDead(true);
-				}
-				if (o.getBody().overlaps(player.getBody())) {
-					if (player.attacking() && !((Gem) o).held) {
-						o.setDead(true);
-					} else if (player.moving()) {
-						((Gem) o).held = true;
-						player.carry((Gem) o);
+				Gem g = (Gem) o;
+				if (g.getBody().overlaps(player.getBody()) && g.getState() != Gem.State.GRAB) {
+					if (player.getState() == Player.State.DRAG) {
+						g.setState(Gem.State.GRAB);
+						player.carry(g);
+					} else if (player.getState() == Player.State.RELEASE) {
+						g.setState(Gem.State.DESTROY);
 					}
 				}
-				if (o.getDead()) {
-					objects.add(new Debris(o.getX(), o.getY(), MathUtils.random(-4, 4), MathUtils.random(8), "img/debris.png"));
-					objects.add(new Debris(o.getX(), o.getY(), MathUtils.random(-4, 4), MathUtils.random(8), "img/debris.png"));
-					objects.add(new Debris(o.getX(), o.getY(), MathUtils.random(-4, 4), MathUtils.random(8), "img/debris.png"));
-					objects.add(new Debris(o.getX(), o.getY(), MathUtils.random(-4, 4), MathUtils.random(8), "img/debris.png"));
-					objects.remove(o);
+				if (g.getState() == Gem.State.EXIT) {
+					objects.remove(g);
+					i--;
+				} else if (g.getState() == Gem.State.DESTROY) {
+					objects.add(new Debris(g.getX(), g.getY(), MathUtils.random(-4, 4), MathUtils.random(8), "img/debris.png"));
+					objects.add(new Debris(g.getX(), g.getY(), MathUtils.random(-4, 4), MathUtils.random(8), "img/debris.png"));
+					objects.add(new Debris(g.getX(), g.getY(), MathUtils.random(-4, 4), MathUtils.random(8), "img/debris.png"));
+					objects.add(new Debris(g.getX(), g.getY(), MathUtils.random(-4, 4), MathUtils.random(8), "img/debris.png"));
+					objects.remove(g);
 					i--;
 				}
 			} else if (o instanceof Debris) {

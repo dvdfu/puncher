@@ -14,8 +14,8 @@ import com.dvdfu.puncher.handlers.Vars;
 import com.dvdfu.puncher.states.Game;
 
 public class Player extends GameObject {
-	private enum State {
-		IDLE, HELD, SHOT, HURT, ITEM
+	public enum State {
+		IDLE, DRAG, RELEASE, HURT, ITEM
 	};
 
 	private Array<Gem> gems;
@@ -44,25 +44,20 @@ public class Player extends GameObject {
 
 	private void switchState(State s) {
 		Vars.timescale = 1;
+		t = 0;
 		switch (s) {
 		case IDLE:
 			setSprite("img/blob.png");
-			t = 0;
 			dy = y - springMiddle.y;
 			dx = x - springMiddle.x;
-			for (int i = 0; i < gems.size; i++) {
-				Gem g = gems.get(i);
-				g.held = false;
-				gems.removeIndex(i);
-				i--;
+			for (Gem g : gems) {
+				g.setState(Gem.State.COLLECT1);
 			}
 			break;
-		case HELD:
+		case DRAG:
 			setSprite("img/hold.png");
-			t = 0;
 			break;
-		case SHOT:
-			t = 0;
+		case RELEASE:
 			setSprite("img/hurt.png");
 			dy = (springMiddle.y - y) * 3;
 			dx = (springMiddle.x - x) * 3;
@@ -74,16 +69,20 @@ public class Player extends GameObject {
 	public void update() {
 		switch (state) {
 		case IDLE:
-			y = springMiddle.y + dy * MathUtils.cos(t) / (1 + t);
-			x = springMiddle.x + dx * MathUtils.cos(t) / (1 + t);
+			if (t % 3 >= 2 && gems.size > 0) {
+				Gem g = gems.get(gems.size - 1);
+				g.setState(Gem.State.COLLECT2);
+				gems.removeIndex(gems.size - 1);
+			}
+			y = springMiddle.y + dy * MathUtils.cos(t / 8) / (1 + t / 8);
+			x = springMiddle.x + dx * MathUtils.cos(t / 8) / (1 + t / 8);
 			if (Input.MouseDown() && t > Math.PI / 2) {
 				if (new Rectangle(x - 32, y - 32, 64, 64).contains(Game.screenInput.x, Game.screenInput.y)) {
-					switchState(State.HELD);
+					switchState(State.DRAG);
 				}
 			}
-			t += Vars.timescale / 8;
 			break;
-		case HELD:
+		case DRAG:
 			if (Input.MouseDown()) {
 				x = Game.screenInput.x;
 				y = Game.screenInput.y;
@@ -91,45 +90,47 @@ public class Player extends GameObject {
 				if (Game.screenInput.y > springMiddle.y) {
 					switchState(State.IDLE);
 				} else {
-					switchState(State.SHOT);
+					switchState(State.RELEASE);
 				}
 			}
 			if (gems.size > 0) {
 				for (int i = 0; i < gems.size; i++) {
-					int layer = 1;
-					int innerGems = 0;
-					int outerGemLimit = 6;
-					while (true) {
-						if (innerGems + outerGemLimit > i) {
-							break;
+					Gem g = gems.get(i);
+					if (g.getState() == Gem.State.GRAB) {
+						int layer = 1;
+						int innerGems = 0;
+						int outerGemLimit = 6;
+						while (true) {
+							if (innerGems + outerGemLimit > i) {
+								break;
+							}
+							innerGems += outerGemLimit;
+							layer++;
+							outerGemLimit += 6;
 						}
-						innerGems += outerGemLimit;
-						layer++;
-						outerGemLimit += 6;
-					}
-					float radius = layer * 16;
-					float angle = MathUtils.PI2 * (i - innerGems) / (gems.size - innerGems);
-					if (gems.size >= outerGemLimit + innerGems) {
-						angle = MathUtils.PI2 * (i % outerGemLimit) / outerGemLimit;
-					}
-					if (layer % 2 == 0) {
-						gems.get(i).setPosition(x + radius * MathUtils.cos(angle - t), y + radius * MathUtils.sin(angle - t));
-					} else {
-						gems.get(i).setPosition(x + radius * MathUtils.cos(angle + t), y + radius * MathUtils.sin(angle + t));
+						float radius = layer * 16;
+						float angle = MathUtils.PI2 * (i - innerGems) / (gems.size - innerGems);
+						if (gems.size >= outerGemLimit + innerGems) {
+							angle = MathUtils.PI2 * (i % outerGemLimit) / outerGemLimit;
+						}
+						if (layer % 2 == 0) {
+							g.setPosition(x + radius * MathUtils.cos(angle - t / 40), y + radius * MathUtils.sin(angle - t / 40));
+						} else {
+							g.setPosition(x + radius * MathUtils.cos(angle + t / 40), y + radius * MathUtils.sin(angle + t / 40));
+						}
 					}
 				}
 			}
-			t += Vars.timescale / 40;
 			break;
-		case SHOT:
-			y = springMiddle.y + dy * MathUtils.sin(t);
-			x = springMiddle.x + dx * MathUtils.sin(t);
-			if (t > MathUtils.PI * 3 / 4) {
+		case RELEASE:
+			y = springMiddle.y + dy * MathUtils.sin(t / 16);
+			x = springMiddle.x + dx * MathUtils.sin(t / 16);
+			if (t / 16 > MathUtils.PI * 3 / 4) {
 				switchState(State.IDLE);
 			}
-			t += Vars.timescale / 16;
 			break;
 		}
+		t += Vars.timescale;
 		angle = MathUtils.atan2(y - springMiddle.y, x - springMiddle.x) * MathUtils.radiansToDegrees + 180;
 		super.update();
 	}
@@ -141,18 +142,21 @@ public class Player extends GameObject {
 	}
 
 	public boolean attacking() {
-		return state == State.SHOT;
+		return state == State.RELEASE;
 	}
 
 	public boolean moving() {
-		return state == State.HELD;
+		return state == State.DRAG;
 	}
-	
+
+	public State getState() {
+		return state;
+	}
+
 	public void renderJoint(SpriteBatch sb) {
 		sb.begin();
-
 		if (y < springMiddle.y) {
-			if (state == State.HELD) {
+			if (state == State.DRAG) {
 				float px = springMiddle.x + (springMiddle.x - x) * 3;
 				float py = springMiddle.y + (springMiddle.y - y) * 3;
 				for (int i = 0; i <= springCount; i++) {
