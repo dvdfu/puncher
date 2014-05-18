@@ -1,5 +1,7 @@
 package com.dvdfu.puncher.handlers;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
 public class Sprite {
@@ -33,6 +35,10 @@ public class Sprite {
 
 	public void setCurrentFrame(int i) {
 		frame = i % length;
+	}
+	
+	public void setSprite(String filename) {
+		setSprite(new TextureRegion(new Texture(Gdx.files.internal(filename))));
 	}
 
 	public void setSprite(TextureRegion reg) {

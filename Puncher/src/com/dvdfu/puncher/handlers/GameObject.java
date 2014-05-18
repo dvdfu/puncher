@@ -19,6 +19,7 @@ public class GameObject {
 	protected float ySpriteOffset;
 	protected float spriteWidth;
 	protected float spriteHeight;
+	protected boolean dead;
 
 	public GameObject() {
 		this(0, 0, 0, 0);
@@ -37,6 +38,7 @@ public class GameObject {
 		spriteWidth = 0;
 		spriteHeight = 0;
 		sprite = new Sprite();
+		dead = false;
 	}
 
 	public void setPosition(float x, float y) {
@@ -57,6 +59,10 @@ public class GameObject {
 	public void setBody(float width, float height) {
 		this.width = width;
 		this.height = height;
+	}
+	
+	public void setDead(boolean dead) {
+		this.dead = dead;
 	}
 
 	public Rectangle getBody() {
@@ -81,6 +87,16 @@ public class GameObject {
 
 	public Sprite getSprite() {
 		return sprite;
+	}
+	
+	public boolean getDead() {
+		return dead;
+	}
+	
+	public void setSprite(String filename) {
+		sprite.setSprite(filename);
+		spriteWidth = sprite.getFrame().getRegionWidth();
+		spriteHeight = sprite.getFrame().getRegionHeight();
 	}
 	
 	public void setSprite(TextureRegion reg) {

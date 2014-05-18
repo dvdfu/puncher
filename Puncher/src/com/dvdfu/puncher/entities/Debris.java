@@ -1,20 +1,15 @@
 package com.dvdfu.puncher.entities;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.math.MathUtils;
 import com.dvdfu.puncher.handlers.GameObject;
-import com.dvdfu.puncher.handlers.Vars;
 
 public class Debris extends GameObject {
 	private float dx;
 	private float dy;
 	private boolean dead;
 
-	public Debris(float x, float y, float dx, float dy) {
+	public Debris(float x, float y, float dx, float dy, String filename) {
 		super(x, y, 8, 8);
-		setSprite(new TextureRegion(new Texture(Gdx.files.internal("img/debris.png"))));
+		setSprite(filename);
 		dead = false;
 		this.dx = dx;
 		this.dy = dy;

@@ -4,8 +4,6 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
@@ -31,14 +29,14 @@ public class Player extends GameObject {
 	private TextureRegion joint;
 
 	public Player() {
-		super(Vars.SCREEN_WIDTH / 2, 80, 24, 24);
+		super(Vars.SCREEN_WIDTH / 2, 80, 32, 32);
 		gems = new Array<Gem>();
 		springMiddle = new Vector2(Vars.SCREEN_WIDTH / 2, Vars.SCREEN_HEIGHT / 4);
 		xOffset = -width / 2;
 		yOffset = -height / 2;
 		switchState(State.IDLE);
 		springCount = 12;
-		setSprite(new TextureRegion(new Texture(Gdx.files.internal("img/blob.png"))));
+		setSprite("img/blob.png");
 		joint = new TextureRegion(new Texture(Gdx.files.internal("img/joint.png")));
 		xSpriteOffset = -16;
 		ySpriteOffset = -16;
@@ -48,6 +46,7 @@ public class Player extends GameObject {
 		Vars.timescale = 1;
 		switch (s) {
 		case IDLE:
+			setSprite("img/blob.png");
 			t = 0;
 			dy = y - springMiddle.y;
 			dx = x - springMiddle.x;
@@ -59,10 +58,12 @@ public class Player extends GameObject {
 			}
 			break;
 		case HELD:
+			setSprite("img/hold.png");
 			t = 0;
 			break;
 		case SHOT:
 			t = 0;
+			setSprite("img/hurt.png");
 			dy = (springMiddle.y - y) * 3;
 			dx = (springMiddle.x - x) * 3;
 			break;
@@ -80,7 +81,7 @@ public class Player extends GameObject {
 					switchState(State.HELD);
 				}
 			}
-			t += Vars.timescale / 4;
+			t += Vars.timescale / 8;
 			break;
 		case HELD:
 			if (Input.MouseDown()) {
@@ -111,7 +112,11 @@ public class Player extends GameObject {
 					if (gems.size >= outerGemLimit + innerGems) {
 						angle = MathUtils.PI2 * (i % outerGemLimit) / outerGemLimit;
 					}
-					gems.get(i).setPosition(x + radius * MathUtils.cos(angle + t), y + radius * MathUtils.sin(angle + t));
+					if (layer % 2 == 0) {
+						gems.get(i).setPosition(x + radius * MathUtils.cos(angle - t), y + radius * MathUtils.sin(angle - t));
+					} else {
+						gems.get(i).setPosition(x + radius * MathUtils.cos(angle + t), y + radius * MathUtils.sin(angle + t));
+					}
 				}
 			}
 			t += Vars.timescale / 40;
@@ -122,7 +127,7 @@ public class Player extends GameObject {
 			if (t > MathUtils.PI * 3 / 4) {
 				switchState(State.IDLE);
 			}
-			t += Vars.timescale / 8;
+			t += Vars.timescale / 16;
 			break;
 		}
 		angle = MathUtils.atan2(y - springMiddle.y, x - springMiddle.x) * MathUtils.radiansToDegrees + 180;

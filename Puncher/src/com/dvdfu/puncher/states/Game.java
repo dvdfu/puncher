@@ -11,20 +11,22 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector3;
 import com.dvdfu.puncher.entities.Debris;
 import com.dvdfu.puncher.entities.Gem;
+import com.dvdfu.puncher.entities.Obstacle;
 import com.dvdfu.puncher.entities.Player;
 import com.dvdfu.puncher.handlers.Camera2D;
+import com.dvdfu.puncher.handlers.GameObject;
 import com.dvdfu.puncher.handlers.Input;
 import com.dvdfu.puncher.handlers.InputProcessor;
 import com.dvdfu.puncher.handlers.Vars;
 
 public class Game implements ApplicationListener {
 	private Player player;
-	private ArrayList<Gem> gems;
-	private ArrayList<Debris> deb;
+	private ArrayList<GameObject> objects;
 	private ShapeRenderer sr;
 	private SpriteBatch sb;
 	private Camera2D cc;
 	public static Vector3 screenInput;
+	private int timer;
 
 	public void create() {
 		Gdx.input.setInputProcessor(new InputProcessor());
@@ -34,17 +36,22 @@ public class Game implements ApplicationListener {
 		cc = new Camera2D(Vars.SCREEN_WIDTH, Vars.SCREEN_HEIGHT);
 		// cc.setPan(20);
 		cc.setTarget(Vars.SCREEN_WIDTH / 2, Vars.SCREEN_HEIGHT / 2);
-		gems = new ArrayList<Gem>();
-		for (int i = 0; i < 60; i++) {
-			gems.add(new Gem(MathUtils.random(Vars.SCREEN_WIDTH)));
+		objects = new ArrayList<GameObject>();
+		for (int i = 0; i < 10; i++) {
+			objects.add(new Obstacle(MathUtils.random(Vars.SCREEN_WIDTH), MathUtils.random(Vars.SCREEN_HEIGHT)));
 		}
-		deb = new ArrayList<Debris>();
 		screenInput = new Vector3();
+		timer = 0;
 	}
 
 	public void dispose() {}
 
 	public void render() {
+		timer++;
+		if (timer == 30) {
+			objects.add(new Gem(MathUtils.random(Vars.SCREEN_WIDTH)));
+			timer = 0;
+		}
 		screenInput.set(Input.mouse.x, Input.mouse.y, 0);
 		cc.unproject(screenInput);
 		cc.update();
@@ -58,37 +65,48 @@ public class Game implements ApplicationListener {
 		Gdx.graphics.getGL20().glEnable(GL20.GL_BLEND);
 		//
 		player.renderJoint(sb);
-		for (int i = 0; i < gems.size(); i++) {
-			Gem g = gems.get(i);
-			g.update();
-			g.render(sb);
-			if (g.dead) {
-				g.setPosition(g.getX(), Vars.SCREEN_HEIGHT + 8);
+		for (int i = 0; i < objects.size(); i++) {
+			GameObject o = objects.get(i);
+			if (!player.attacking()) {
+				o.update();
 			}
-			//if (g.held) {
-				//g.setPosition(player.getX(), player.getY() + 32);
-			//}
-			if (g.getBody().overlaps(player.getBody())) {
-				if (player.attacking() && !g.held) {
-					deb.add(new Debris(g.getX(), g.getY(), MathUtils.random(-4, 4), MathUtils.random(8)));
-					deb.add(new Debris(g.getX(), g.getY(), MathUtils.random(-4, 4), MathUtils.random(8)));
-					deb.add(new Debris(g.getX(), g.getY(), MathUtils.random(-4, 4), MathUtils.random(8)));
-					deb.add(new Debris(g.getX(), g.getY(), MathUtils.random(-4, 4), MathUtils.random(8)));
-					gems.remove(g);
-					i --;
-				} else if (player.moving()) {
-					g.held = true;
-					player.carry(g);
+			o.render(sb);
+			if (o instanceof Obstacle) {
+				if (o.getBody().overlaps(player.getBody())) {
+					if (player.attacking()) {
+						objects.add(new Debris(o.getX(), o.getY(), MathUtils.random(-4, 4), MathUtils.random(8), "img/debris2.png"));
+						objects.add(new Debris(o.getX(), o.getY(), MathUtils.random(-4, 4), MathUtils.random(8), "img/debris2.png"));
+						objects.add(new Debris(o.getX(), o.getY(), MathUtils.random(-4, 4), MathUtils.random(8), "img/debris2.png"));
+						objects.add(new Debris(o.getX(), o.getY(), MathUtils.random(-4, 4), MathUtils.random(8), "img/debris2.png"));
+						objects.remove(o);
+						i--;
+					}
 				}
-			}
-		}
-		for (int i = 0; i < deb.size(); i++) {
-			Debris d = deb.get(i);
-			d.update();
-			d.render(sb);
-			if (d.isDead()) {
-				deb.remove(d);
-				i++;
+			} else if (o instanceof Gem) {
+				if (o.getY() + 8 < 0) {
+					o.setDead(true);
+				}
+				if (o.getBody().overlaps(player.getBody())) {
+					if (player.attacking() && !((Gem) o).held) {
+						o.setDead(true);
+					} else if (player.moving()) {
+						((Gem) o).held = true;
+						player.carry((Gem) o);
+					}
+				}
+				if (o.getDead()) {
+					objects.add(new Debris(o.getX(), o.getY(), MathUtils.random(-4, 4), MathUtils.random(8), "img/debris.png"));
+					objects.add(new Debris(o.getX(), o.getY(), MathUtils.random(-4, 4), MathUtils.random(8), "img/debris.png"));
+					objects.add(new Debris(o.getX(), o.getY(), MathUtils.random(-4, 4), MathUtils.random(8), "img/debris.png"));
+					objects.add(new Debris(o.getX(), o.getY(), MathUtils.random(-4, 4), MathUtils.random(8), "img/debris.png"));
+					objects.remove(o);
+					i--;
+				}
+			} else if (o instanceof Debris) {
+				if (((Debris) o).isDead()) {
+					objects.remove(o);
+					i--;
+				}
 			}
 		}
 		player.render(sb);
