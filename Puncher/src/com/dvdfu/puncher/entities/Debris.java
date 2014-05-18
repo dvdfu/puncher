@@ -1,6 +1,7 @@
 package com.dvdfu.puncher.entities;
 
 import com.dvdfu.puncher.handlers.GameObject;
+import com.dvdfu.puncher.handlers.Vars;
 
 public class Debris extends GameObject {
 	private float dx;
@@ -23,7 +24,7 @@ public class Debris extends GameObject {
 		x += dx;
 		y += dy;
 		dy -= 0.4;
-		dead = y + 4 < 0;
+		dead = (y + spriteHeight / 2 < 0 || y - spriteHeight / 2 > Vars.SCREEN_HEIGHT || x + spriteWidth < 0 || x - spriteWidth > Vars.SCREEN_WIDTH);
 		super.update();
 	}
 

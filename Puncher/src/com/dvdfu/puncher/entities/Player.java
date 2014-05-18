@@ -25,11 +25,11 @@ public class Player extends GameObject {
 	private float t;
 	private float dy;
 	private float dx;
-	private float angle;
+	// private float angle;
 	private TextureRegion joint;
 
 	public Player() {
-		super(Vars.SCREEN_WIDTH / 2, 80, 32, 32);
+		super(Vars.SCREEN_WIDTH / 2, 80, 24, 24);
 		gems = new Array<Gem>();
 		springMiddle = new Vector2(Vars.SCREEN_WIDTH / 2, Vars.SCREEN_HEIGHT / 4);
 		xOffset = -width / 2;
@@ -50,8 +50,11 @@ public class Player extends GameObject {
 			setSprite("img/blob.png");
 			dy = y - springMiddle.y;
 			dx = x - springMiddle.x;
-			for (Gem g : gems) {
-				g.setState(Gem.State.COLLECT1);
+			for (int i = 0; i < gems.size; i++) {
+				Gem g = gems.get(i);
+				g.setState(Gem.State.DESTROY);
+				gems.removeIndex(i);
+				i--;
 			}
 			break;
 		case DRAG:
@@ -62,6 +65,8 @@ public class Player extends GameObject {
 			dy = (springMiddle.y - y) * 3;
 			dx = (springMiddle.x - x) * 3;
 			break;
+		default:
+			break;
 		}
 		state = s;
 	}
@@ -69,13 +74,8 @@ public class Player extends GameObject {
 	public void update() {
 		switch (state) {
 		case IDLE:
-			if (t % 3 >= 2 && gems.size > 0) {
-				Gem g = gems.get(gems.size - 1);
-				g.setState(Gem.State.COLLECT2);
-				gems.removeIndex(gems.size - 1);
-			}
 			y = springMiddle.y + dy * MathUtils.cos(t / 8) / (1 + t / 8);
-			x = springMiddle.x + dx * MathUtils.cos(t / 8) / (1 + t / 8);
+			// x = springMiddle.x + dx * MathUtils.cos(t / 8) / (1 + t / 8);
 			if (Input.MouseDown() && t > Math.PI / 2) {
 				if (new Rectangle(x - 32, y - 32, 64, 64).contains(Game.screenInput.x, Game.screenInput.y)) {
 					switchState(State.DRAG);
@@ -93,45 +93,46 @@ public class Player extends GameObject {
 					switchState(State.RELEASE);
 				}
 			}
-			if (gems.size > 0) {
-				for (int i = 0; i < gems.size; i++) {
-					Gem g = gems.get(i);
-					if (g.getState() == Gem.State.GRAB) {
-						int layer = 1;
-						int innerGems = 0;
-						int outerGemLimit = 6;
-						while (true) {
-							if (innerGems + outerGemLimit > i) {
-								break;
-							}
-							innerGems += outerGemLimit;
-							layer++;
-							outerGemLimit += 6;
+			for (int i = 0; i < gems.size; i++) {
+				Gem g = gems.get(i);
+				if (g.getState() == Gem.State.GRAB) {
+					int layer = 1;
+					int innerGems = 0;
+					int outerGemLimit = 6;
+					while (true) {
+						if (innerGems + outerGemLimit > i) {
+							break;
 						}
-						float radius = layer * 16;
-						float angle = MathUtils.PI2 * (i - innerGems) / (gems.size - innerGems);
-						if (gems.size >= outerGemLimit + innerGems) {
-							angle = MathUtils.PI2 * (i % outerGemLimit) / outerGemLimit;
-						}
-						if (layer % 2 == 0) {
-							g.setPosition(x + radius * MathUtils.cos(angle - t / 40), y + radius * MathUtils.sin(angle - t / 40));
-						} else {
-							g.setPosition(x + radius * MathUtils.cos(angle + t / 40), y + radius * MathUtils.sin(angle + t / 40));
-						}
+						innerGems += outerGemLimit;
+						layer++;
+						outerGemLimit += 6;
+					}
+					float radius = layer * 16;
+					float angle = MathUtils.PI2 * (i - innerGems) / (gems.size - innerGems);
+					if (gems.size >= outerGemLimit + innerGems) {
+						angle = MathUtils.PI2 * (i % outerGemLimit) / outerGemLimit;
+					}
+					if (layer % 2 == 0) {
+						g.setPosition(x + radius * MathUtils.cos(angle - t / 40), y + radius * MathUtils.sin(angle - t / 40));
+					} else {
+						g.setPosition(x + radius * MathUtils.cos(angle + t / 40), y + radius * MathUtils.sin(angle + t / 40));
 					}
 				}
 			}
 			break;
 		case RELEASE:
 			y = springMiddle.y + dy * MathUtils.sin(t / 16);
-			x = springMiddle.x + dx * MathUtils.sin(t / 16);
+			// x = springMiddle.x + dx * MathUtils.sin(t / 16);
 			if (t / 16 > MathUtils.PI * 3 / 4) {
 				switchState(State.IDLE);
 			}
 			break;
+		default:
+			break;
 		}
 		t += Vars.timescale;
-		angle = MathUtils.atan2(y - springMiddle.y, x - springMiddle.x) * MathUtils.radiansToDegrees + 180;
+		// angle = MathUtils.atan2(y - springMiddle.y, x - springMiddle.x) *
+		// MathUtils.radiansToDegrees + 180;
 		super.update();
 	}
 
@@ -160,7 +161,9 @@ public class Player extends GameObject {
 				float px = springMiddle.x + (springMiddle.x - x) * 3;
 				float py = springMiddle.y + (springMiddle.y - y) * 3;
 				for (int i = 0; i <= springCount; i++) {
-					sb.draw(joint, x + i * (px - x) / springCount - 4, y + i * (py - y) / springCount - 4);
+					// sb.draw(joint, x + i * (px - x) / springCount - 4, y + i
+					// * (py - y) / springCount - 4);
+					sb.draw(joint, x - 4, y + i * (py - y) / springCount - 4);
 				}
 			}
 		}
