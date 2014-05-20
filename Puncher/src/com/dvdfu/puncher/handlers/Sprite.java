@@ -10,6 +10,7 @@ public class Sprite {
 	private float time;
 	private int frame;
 	private int length;
+	private boolean playedOnce;
 
 	public Sprite() {
 		this(new TextureRegion[] { null });
@@ -25,6 +26,7 @@ public class Sprite {
 		time = 0;
 		frame = 0;
 		length = reg.length;
+		playedOnce = false;
 	}
 
 	public void setDelay(float f) {
@@ -36,7 +38,7 @@ public class Sprite {
 	public void setCurrentFrame(int i) {
 		frame = i % length;
 	}
-	
+
 	public void setSprite(String filename) {
 		setSprite(new TextureRegion(new Texture(Gdx.files.internal(filename))));
 	}
@@ -61,6 +63,7 @@ public class Sprite {
 				time -= delay;
 				frame++;
 				if (frame == length) {
+					playedOnce = true;
 					frame = 0;
 				}
 			}
@@ -70,7 +73,11 @@ public class Sprite {
 	public TextureRegion getFrame() {
 		return frames[frame];
 	}
-	
+
+	public boolean playedOnce() {
+		return playedOnce;
+	}
+
 	public boolean exists() {
 		return frames[0] != null;
 	}

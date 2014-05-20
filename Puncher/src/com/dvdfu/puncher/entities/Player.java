@@ -52,7 +52,7 @@ public class Player extends GameObject {
 			dx = x - springMiddle.x;
 			for (int i = 0; i < gems.size; i++) {
 				Gem g = gems.get(i);
-				g.setState(Gem.State.DESTROY);
+				g.setState(Gem.State.COLLECT);
 				gems.removeIndex(i);
 				i--;
 			}
